@@ -8,7 +8,6 @@
 #include <mbgl/text/collision_tile.hpp>
 
 #include <cassert>
-#include <future>
 
 namespace mbgl {
 

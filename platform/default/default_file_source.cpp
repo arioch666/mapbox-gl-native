@@ -152,11 +152,12 @@ DefaultFileSource::DefaultFileSource(const std::string& cachePath,
 DefaultFileSource::~DefaultFileSource() = default;
 
 void DefaultFileSource::setAccessToken(const std::string& accessToken) {
-    thread->invokeSync(&Impl::setAccessToken, accessToken);
+    cachedAccessToken = accessToken;
+    thread->invoke(&Impl::setAccessToken, accessToken);
 }
 
 std::string DefaultFileSource::getAccessToken() const {
-    return thread->invokeSync<std::string>(&Impl::getAccessToken);
+    return cachedAccessToken;
 }
 
 std::unique_ptr<AsyncRequest> DefaultFileSource::request(const Resource& resource, Callback callback) {
@@ -208,14 +209,12 @@ void DefaultFileSource::getOfflineRegionStatus(OfflineRegion& region, std::funct
     thread->invoke(&Impl::getRegionStatus, region.getID(), callback);
 }
 
-void DefaultFileSource::setOfflineMapboxTileCountLimit(uint64_t limit) const {
-    thread->invokeSync(&Impl::setOfflineMapboxTileCountLimit, limit);
+void DefaultFileSource::setOfflineMapboxTileCountLimit(uint64_t) const {
 }
 
 // For testing only:
 
-void DefaultFileSource::put(const Resource& resource, const Response& response) {
-    thread->invokeSync(&Impl::put, resource, response);
+void DefaultFileSource::put(const Resource&, const Response&) {
 }
 
 } // namespace mbgl

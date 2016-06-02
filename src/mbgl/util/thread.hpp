@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <thread>
 #include <atomic>
 #include <utility>
@@ -43,24 +42,6 @@ public:
         return loop->invokeWithCallback(bind(fn), callback, std::forward<Args>(args)...);
     }
 
-    // Invoke object->fn(args...) in the runloop thread, and wait for the result.
-    template <class R, typename Fn, class... Args>
-    R invokeSync(Fn fn, Args&&... args) {
-        std::packaged_task<R ()> task(std::bind(fn, object, args...));
-        std::future<R> future = task.get_future();
-        loop->invoke(std::move(task));
-        return future.get();
-    }
-
-    // Invoke object->fn(args...) in the runloop thread, and wait for it to complete.
-    template <typename Fn, class... Args>
-    void invokeSync(Fn fn, Args&&... args) {
-        std::packaged_task<void ()> task(std::bind(fn, object, args...));
-        std::future<void> future = task.get_future();
-        loop->invoke(std::move(task));
-        future.get();
-    }
-
 private:
     Thread(const Thread&) = delete;
     Thread(Thread&&) = delete;
@@ -77,8 +58,8 @@ private:
     template <typename P, std::size_t... I>
     void run(P&& params, std::index_sequence<I...>);
 
-    std::promise<void> running;
-    std::promise<void> joinable;
+    std::atomic<bool> running;
+    std::atomic<bool> joinable;
 
     std::thread thread;
 
@@ -88,7 +69,7 @@ private:
 
 template <class Object>
 template <class... Args>
-Thread<Object>::Thread(const ThreadContext& context, Args&&... args) {
+Thread<Object>::Thread(const ThreadContext& context, Args&&... args) : running(true), joinable(true) {
     // Note: We're using std::tuple<> to store the arguments because GCC 4.9 has a bug
     // when expanding parameters packs captured in lambdas.
     std::tuple<Args...> params = std::forward_as_tuple(::std::forward<Args>(args)...);
@@ -101,7 +82,6 @@ Thread<Object>::Thread(const ThreadContext& context, Args&&... args) {
         pthread_setname_np(pthread_self(), context.name.c_str());
 #endif
 #endif
-
         if (context.priority == ThreadPriority::Low) {
             platform::makeThreadLowPriority();
         }
@@ -109,7 +89,7 @@ Thread<Object>::Thread(const ThreadContext& context, Args&&... args) {
         run(std::move(params), std::index_sequence_for<Args...>{});
     });
 
-    running.get_future().get();
+    while (running) {}
 }
 
 template <class Object>
@@ -121,19 +101,19 @@ void Thread<Object>::run(P&& params, std::index_sequence<I...>) {
     Object object_(std::get<I>(std::forward<P>(params))...);
     object = &object_;
 
-    running.set_value();
+    running = false;
     loop_.run();
 
     loop = nullptr;
     object = nullptr;
 
-    joinable.get_future().get();
+    while (joinable) {}
 }
 
 template <class Object>
 Thread<Object>::~Thread() {
     loop->stop();
-    joinable.set_value();
+    joinable = false;
     thread.join();
 }
 

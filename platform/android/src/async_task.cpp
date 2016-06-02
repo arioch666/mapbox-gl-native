@@ -12,7 +12,7 @@ namespace util {
 class AsyncTask::Impl : public RunLoop::Impl::Runnable {
 public:
     Impl(std::function<void()>&& fn)
-        : task(std::move(fn)) {
+        : queued(true), task(std::move(fn)) {
         loop->initRunnable(this);
     }
 
@@ -21,7 +21,8 @@ public:
     }
 
     void maySend() {
-        if (!queued.test_and_set()) {
+        if (queued) {
+            queued = false;
             loop->addRunnable(this);
         }
     }
@@ -32,7 +33,7 @@ public:
 
     void runTask() override {
         loop->removeRunnable(this);
-        queued.clear();
+        queued = true;
         task();
     }
 
@@ -42,7 +43,7 @@ private:
 
     RunLoop::Impl* loop = reinterpret_cast<RunLoop::Impl*>(RunLoop::getLoopHandle());
 
-    std::atomic_flag queued = ATOMIC_FLAG_INIT;
+    std::atomic<bool> queued;
     std::function<void()> task;
 };
 

@@ -105,6 +105,8 @@ public:
     class Impl;
 
 private:
+    std::string cachedAccessToken;
+
     const std::unique_ptr<util::Thread<Impl>> thread;
     const std::unique_ptr<FileSource> assetFileSource;
 };
