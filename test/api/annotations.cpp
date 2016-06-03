@@ -274,8 +274,8 @@ TEST(Annotations, QueryRenderedFeatures) {
     map.addPointAnnotation(PointAnnotation(latLng, "default_marker"));
 
     test::render(map);
-    
+
     auto point = map.pixelForLatLng(latLng);
     auto features = map.queryRenderedFeatures(point);
-    EXPECT_EQ(features.size(), 1);
+    EXPECT_EQ(features.size(), 1ul);
 }
