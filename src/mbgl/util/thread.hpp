@@ -5,6 +5,7 @@
 #include <utility>
 #include <functional>
 
+#include <mbgl/util/atomic.hpp>
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/util/thread_context.hpp>
 #include <mbgl/platform/platform.hpp>
@@ -58,8 +59,8 @@ private:
     template <typename P, std::size_t... I>
     void run(P&& params, std::index_sequence<I...>);
 
-    std::atomic<bool> running;
-    std::atomic<bool> joinable;
+    util::Atomic<bool> running;
+    util::Atomic<bool> joinable;
 
     std::thread thread;
 

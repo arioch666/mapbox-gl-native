@@ -1,9 +1,9 @@
 #include "run_loop_impl.hpp"
 
 #include <mbgl/util/async_task.hpp>
+#include <mbgl/util/atomic.hpp>
 #include <mbgl/util/run_loop.hpp>
 
-#include <atomic>
 #include <functional>
 
 namespace mbgl {
@@ -43,7 +43,7 @@ private:
 
     RunLoop::Impl* loop = reinterpret_cast<RunLoop::Impl*>(RunLoop::getLoopHandle());
 
-    std::atomic<bool> queued;
+    util::Atomic<bool> queued;
     std::function<void()> task;
 };
 
